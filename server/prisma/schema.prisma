@@ -1,0 +1,166 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime      @default(now())
+  profile      Profile?
+  workouts     WorkoutLog[]
+  plans        WorkoutPlan[]
+  foodLogs     FoodLog[]
+  waterLogs    WaterLog[]
+  sleepLogs    SleepLog[]
+  stepsLogs    StepLog[]
+  achievements Achievement[]
+  posts        Post[]
+  comments     Comment[]
+  likes        Like[]
+  
+  followers    Follows[]     @relation("following")
+  following    Follows[]     @relation("follower")
+}
+
+model Profile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gender         String   @default("other")
+  age            Int      @default(25)
+  height         Float    @default(170) // cm
+  weight         Float    @default(70)  // kg
+  fitnessGoal    String   @default("maintenance") // muscle_gain, fat_loss, maintenance, endurance
+  activityLevel  String   @default("moderate") // sedentary, light, moderate, active
+  calorieTarget  Int      @default(2000)
+  waterTarget    Int      @default(2500) // ml
+  sleepTarget    Float    @default(8.0)  // hours
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  streak         Int      @default(0)
+  lastActiveDate DateTime @default(now())
+  avatarType     String   @default("fit") // skinny, fit, athletic, muscular
+}
+
+model WorkoutPlan {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  exercises   String        // JSON string array of { name, category, sets, reps, duration }
+  createdAt   DateTime      @default(now())
+  logs        WorkoutLog[]
+}
+
+model WorkoutLog {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId         String?
+  plan           WorkoutPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  workoutName    String
+  duration       Int          // minutes
+  caloriesBurned Int
+  completedAt    DateTime     @default(now())
+  notes          String?
+  exercises      String       // JSON string array of { name, sets: [{ reps, weight, completed }] }
+}
+
+model FoodLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealType  String   // breakfast, lunch, dinner, snack
+  name      String
+  calories  Int
+  protein   Float    // grams
+  carbs     Float    // grams
+  fat       Float    // grams
+  amount    Float    // grams or servings
+  loggedAt  DateTime @default(now())
+}
+
+model WaterLog {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount   Int      // ml
+  loggedAt DateTime @default(now())
+}
+
+model SleepLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sleepTime    DateTime
+  wakeTime     DateTime
+  duration     Float    // hours
+  qualityScore Int      // 1 to 100
+  loggedAt     DateTime @default(now())
+}
+
+model StepLog {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps    Int
+  loggedAt DateTime @default(now())
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeKey    String   // unique badge identifier
+  title       String
+  description String
+  unlockedAt  DateTime @default(now())
+}
+
+model Follows {
+  followerId  String
+  follower    User   @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User   @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+}
+
+model Post {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  imageUrl  String?
+  createdAt DateTime  @default(now())
+  likes     Like[]
+  comments  Comment[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id     String @id @default(uuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
